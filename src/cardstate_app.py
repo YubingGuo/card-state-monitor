@@ -58,7 +58,7 @@ class DisplayerFrame(wx.Frame, data_types.CardStateDisplayer):
 
 class DisplayerApp(wx.App):
     def OnInit(self):
-        self.config_file = "lib/setting"
+        self.config_file = "setting/setting"
 
         self.configurator = configurator.Configurator(self.config_file)
         self.frame = DisplayerFrame(None, self.configurator)

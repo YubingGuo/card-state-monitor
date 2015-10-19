@@ -1,12 +1,14 @@
 from distutils.core import setup
 import py2exe
+import sys
+import os
+sys.path.append(os.getcwd()+'\\src')
 
-dist_dir = "CardStateMonitor"
+dist_dir = "bin"
 csm_wx = dict(
     description = "Application used for HDBDE",
     script = "src/cardstate_app.py",
-#other_resources = [(RT_MANIFEST, 1, manifest_template % dict(prog="test_wx"))],
-    icon_resources = [(1, "my_icon.ico")],
+    icon_resources = [(1, "res/my_icon.ico")],
     dest_base = "CardStateMonitor")
 
     
@@ -16,8 +18,7 @@ setup(
                           "optimize": 2,
                           "ascii": 1,
                           "bundle_files": 3}},
-    data_files = [("lib", ["setting"]), ("icon", ["res/my_icon.ico"])],
+    data_files = [("setting", ["setting/setting"]), ("res", ["res/my_icon.ico"])],
     zipfile = "lib/pylib.zip",
     windows = [csm_wx],
- 
     )
