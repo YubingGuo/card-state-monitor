@@ -68,8 +68,8 @@ class DisplayerApp(wx.App):
         self.cardStateController = cardstate_controller.CardStateControlThread(self.frame, self.configurator)
         self.cardStateController.start()
         return True
-        
-    
+
+
     def OnExit(self):
         if self.cardStateController.isRunning():
             self.cardStateController.stop()
@@ -104,7 +104,7 @@ def main():
     configLogger(LOG_DIRECTION_FILE, logging.INFO, log_filename)
     
     me = singleton.SingleInstance()
-    app = DisplayerApp()#(1, log_filename)
+    app = DisplayerApp(False)#1, log_filename)
     app.MainLoop()
     
 if __name__ == '__main__':

@@ -3,13 +3,16 @@ import ConfigParser
 
 COLLECT_SECTION = "Collect"
 DISPLAY_SECTION = "Display"
+TOOLS_SECTION = "Tools"
 CONFIG_TARGET = "target"
 CONFIG_INTERVAL = "interval"
 CONFIG_IGNORE = "ignore"
+CONFIG_EATT_PATH = "eatt_path"
 
 DEFAULT_TARGET = "192.168.129.2"
 DEFAULT_INTERVAL = 3
 DEFAULT_IGNORE = False
+DEFAULT_EATT_PATH = None
 
 class Configurator():
     def __init__(self, config_file):
@@ -21,6 +24,7 @@ class Configurator():
         self.target = DEFAULT_TARGET
         self.interval = DEFAULT_INTERVAL
         self.ignore = DEFAULT_IGNORE
+        self.eatt_path = DEFAULT_EATT_PATH
         
         self.ReadFromFile()
         
@@ -39,16 +43,24 @@ class Configurator():
             self.config_parser.add_section(COLLECT_SECTION)
         if not self.config_parser.has_section(DISPLAY_SECTION):
             self.config_parser.add_section(DISPLAY_SECTION)
+        if not self.config_parser.has_section(TOOLS_SECTION):
+            self.config_parser.add_section(TOOLS_SECTION)
 
         if not self.config_parser.has_option(COLLECT_SECTION, CONFIG_TARGET) or \
            not self.config_parser.get(COLLECT_SECTION, CONFIG_TARGET):
             self.config_parser.set(COLLECT_SECTION, CONFIG_TARGET, DEFAULT_TARGET)
+
         if not self.config_parser.has_option(COLLECT_SECTION, CONFIG_INTERVAL) or \
            not self.config_parser.get(COLLECT_SECTION, CONFIG_INTERVAL):
             self.config_parser.set(COLLECT_SECTION, CONFIG_INTERVAL, DEFAULT_INTERVAL)
+
         if not self.config_parser.has_option(DISPLAY_SECTION, CONFIG_IGNORE) or \
            not self.config_parser.get(DISPLAY_SECTION, CONFIG_IGNORE):
            self.config_parser.set(DISPLAY_SECTION, CONFIG_IGNORE, DEFAULT_IGNORE)
+           
+        if not self.config_parser.has_option(TOOLS_SECTION, CONFIG_EATT_PATH) or \
+           not self.config_parser.get(TOOLS_SECTION, CONFIG_EATT_PATH):
+           self.config_parser.set(TOOLS_SECTION, CONFIG_EATT_PATH, DEFAULT_EATT_PATH)
 
         self.config_parser.write(open(self.config_file,"w"))
         
@@ -59,6 +71,7 @@ class Configurator():
             self.target = self.config_parser.get(COLLECT_SECTION, CONFIG_TARGET)
             self.interval = self.config_parser.getint(COLLECT_SECTION, CONFIG_INTERVAL)
             self.ignore = self.config_parser.getboolean(DISPLAY_SECTION, CONFIG_IGNORE)
+            self.eatt_path = self.config_parser.get(TOOLS_SECTION, CONFIG_EATT_PATH)
         except:
             self.createOptionIfNotExist()
             print "Invalid option is found in config file!"
@@ -68,6 +81,7 @@ class Configurator():
         self.config_parser.set(COLLECT_SECTION, CONFIG_TARGET, self.target)
         self.config_parser.set(COLLECT_SECTION, CONFIG_INTERVAL, self.interval)
         self.config_parser.set(DISPLAY_SECTION, CONFIG_IGNORE, self.ignore)
+        self.config_parser.set(TOOLS_SECTION, CONFIG_EATT_PATH, self.eatt_path)
         self.config_parser.write(open(self.config_file,"w"))
 
     def ShouldIgnoreUninst(self):
@@ -78,7 +92,10 @@ class Configurator():
     
     def GetTarget(self):
         return self.target
-        
+
+    def GetEattPath(self):
+        return self.eatt_path
+
     def Get(self):
         return (self.target, self.interval, self.ignore)
         

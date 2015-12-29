@@ -1,7 +1,9 @@
 import wx
 import wx.grid
+import logging
 import data_types
 import configurator
+import card_controller
 
 TARGET_IP_DCT0 = "192.168.129.2"
 TARGET_IP_DCT1 = "192.168.130.10"
@@ -14,25 +16,41 @@ class CardStateGrid(wx.grid.Grid):
         self.content = data_types.CardList()
         self.ignoreUninst = False
         self.states = ("Installed", "Basic", "Fault", "Use", "Ne", "Specific")
+
         self.cards = ("lcp-0", "lcp-1", "lsp-0", "lsp-1", "lsp-2", "lsp-3", "lsp-4", 
                       "lsp-5", "lsp-6", "lsp-7", "lsp-8", "lsp-9", "lsp-10", "lsp-11",
                       "lsp-12", "lsp-13", "lsp-14", "lsp-15", "lca", "lbi", "lbr-0",
                       "lbr-1", "lbr-2", "lbr-3", "lni-0", "lni-1", "lps-0", "lps-1",
                       "lps-2", "lps-3", "lps-4", "lps-5")
                       
-        self.colorMap = {data_types.STATE_TYPE_INVALID : "GREY",
-                         data_types.STATE_TYPE_UNINST : "GREY",
-                         data_types.STATE_TYPE_HIZ : "DARK GREY",
-                         data_types.STATE_TYPE_NOHWINFO : "DARK SLATE GREY",
-                         data_types.STATE_TYPE_INST : "DARK GREEN",
-                         data_types.STATE_TYPE_ACT : "GREEN",
-                         data_types.STATE_TYPE_BLOCK : "BLUE",
-                         data_types.STATE_TYPE_PBLOCK : "MEDIUM BLUE",
-                         data_types.STATE_TYPE_NOT_READY : "SKY BLUE",
-                         data_types.STATE_TYPE_CHECK : "PINK",
-                         data_types.STATE_TYPE_FULL_ALAMR : "RED",
+        self.menu_titles = [ "S-Reset",
+                             "H-Reset",
+                             "Block",
+                             "Unblock",
+                             "Sleep",
+                             "Sleep Release"
+                           ]
+
+        self.colorMap = {data_types.STATE_TYPE_INVALID       : "GREY",
+                         data_types.STATE_TYPE_UNINST        : "GREY",
+                         data_types.STATE_TYPE_HIZ           : "DARK GREY",
+                         data_types.STATE_TYPE_NOHWINFO      : "DARK SLATE GREY",
+                         data_types.STATE_TYPE_INST          : "DARK GREEN",
+                         data_types.STATE_TYPE_ACT           : "GREEN",
+                         data_types.STATE_TYPE_BLOCK         : "BLUE",
+                         data_types.STATE_TYPE_PBLOCK        : "MEDIUM BLUE",
+                         data_types.STATE_TYPE_NOT_READY     : "SKY BLUE",
+                         data_types.STATE_TYPE_CHECK         : "PINK",
+                         data_types.STATE_TYPE_FULL_ALAMR    : "RED",
                          data_types.STATE_TYPE_PARTIAL_ALARM : "CORAL",
-                         data_types.STATE_TYPE_SLEEP : "PURPLE"}
+                         data_types.STATE_TYPE_SLEEP         : "PURPLE"}
+
+        self.menu_title_by_id = {}
+        for title in self.menu_titles:
+            self.menu_title_by_id[wx.NewId()] = title
+
+        self.selected_card = None
+        self.cardController = card_controller.CardController(r'C:\eATT_2.7.0_LRC')
 
         self.InitView()
             
@@ -46,18 +64,52 @@ class CardStateGrid(wx.grid.Grid):
         self.SetDefaultRowSize(20)
         self.SetRowLabelAlignment(wx.ALIGN_LEFT, wx.ALIGN_CENTER)
         self.SetDefaultCellAlignment(wx.ALIGN_CENTER, wx.ALIGN_CENTER)
-        
+
+        self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.OnCellRightClick)
+
         for col_index in range(self.colCount):
             self.SetColLabelValue(col_index, self.states[col_index])
-            
-#        for card in self.cards:
-#            self.AppendRows(1, True)
-#            row_index = self.GetNumberRows() - 1
-#            self.SetRowLabelValue(row_index, card)
-            
-#            for col_index in range(self.colCount):
-#                self.SetCellValue(row_index, col_index, "-")
     
+    """for card in self.cards:
+            self.AppendRows(1, True)
+            row_index = self.GetNumberRows() - 1
+            self.SetRowLabelValue(row_index, card)
+            
+            for col_index in range(self.colCount):
+                self.SetCellValue(row_index, col_index, "-")"""
+
+    def OnCellRightClick(self, event):
+        self.selected_card = self.GetRowLabelValue(event.GetRow())
+
+        menu = wx.Menu()
+        for (id,title) in self.menu_title_by_id.items():
+            menu.Append(id, title)
+            self.Bind(wx.EVT_MENU, self.MenuSelectionCb, id=id)
+
+        self.PopupMenu(menu, event.GetPosition())
+        menu.Destroy()
+
+    def ShowDialog(self, message, style):
+        dlg = wx.MessageDialog(self, message, "Result", style)
+        dlg.CenterOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def MenuSelectionCb( self, event ):
+        operation = self.menu_title_by_id[event.GetId()]
+        (ret, info) = self.cardController.Control(self.selected_card, operation)
+
+
+        if(ret):
+            message = operation + " " + self.selected_card + " successfully!"
+            style = wx.OK | wx.ICON_INFORMATION | wx.CENTRE | wx.STAY_ON_TOP
+        else:
+            message = operation + " " + self.selected_card + " failed!\n" + "    Detailed Reason: " + info
+            style = wx.OK | wx.ICON_ERROR | wx.CENTRE | wx.STAY_ON_TOP
+
+        self.ShowDialog(message, style)
+        logging.info(str(message))
+
     def GetAttr(self, card = None):
         color = "GREY"
         if card:
@@ -93,7 +145,6 @@ class CardStateGrid(wx.grid.Grid):
         else:
             self.SetData(self.content)
 
-
     def AppendOneRow(self, card):
         if self.ignoreUninst and card.GetStates().Type() == data_types.STATE_TYPE_UNINST:
             return
@@ -112,7 +163,7 @@ class CardStateGrid(wx.grid.Grid):
         self.DeleteAllRows()
         for card in content:
             self.AppendOneRow(card)
-                
+
     def CleanData(self):
         for row in range(self.GetNumberRows()):
             self.SetRowAttr(row, self.GetAttr())
